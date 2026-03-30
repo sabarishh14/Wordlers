@@ -51,7 +51,7 @@ export default function HomeScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: "sabs", // Still hardcoded for testing
+          username: username,
           ...stats
         })
       })
