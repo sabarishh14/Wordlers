@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, StatusBar, View, Text, TouchableOpacity, Modal, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
