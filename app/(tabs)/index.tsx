@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, StatusBar, View, Text, TouchableOpacity, Modal, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
+// The rock-solid, crash-free Heist Script
 const injectWordleHeist = `
   setTimeout(() => {
     const style = document.createElement('style');
@@ -21,6 +20,7 @@ const injectWordleHeist = `
   }, 500);
 
   let lastReportedStatus = 'INITIALIZING';
+
   setInterval(() => {
     try {
       const storageKey = Object.keys(window.localStorage).find(k => k.startsWith('games-state-wordleV2/'));
@@ -31,26 +31,33 @@ const injectWordleHeist = `
         const state = parsed.states[0].data;
         const currentStatus = state.status;
         
-        // Bulletproof color extraction directly from the DOM tiles
-        const extractedEvals = Array.from(document.querySelectorAll('[data-testid="Row"]')).map(row => 
-          Array.from(row.querySelectorAll('[data-testid="tile"]')).map(t => t.getAttribute('data-state'))
-        ).filter(row => row.length > 0 && row[0] && row[0] !== 'empty' && row[0] !== 'tbd');
-        
-        const payload = {
-          status: currentStatus,
-          guessesTaken: state.currentRowIndex,
-          wordsGuessed: state.boardState.filter(word => word !== ''),
-          evaluations: state.evaluations || extractedEvals
+        // FUNCTION TO EXTRACT DATA
+        const getPayload = () => {
+          const extractedEvals = Array.from(document.querySelectorAll('[data-testid="Row"]')).map(row => 
+            Array.from(row.querySelectorAll('[data-testid="tile"]')).map(t => t.getAttribute('data-state'))
+          ).filter(row => row.length > 0 && row[0] && row[0] !== 'empty' && row[0] !== 'tbd');
+
+          return {
+            status: currentStatus,
+            guessesTaken: state.currentRowIndex,
+            wordsGuessed: state.boardState.filter(word => word !== ''),
+            evaluations: state.evaluations || extractedEvals
+          };
         };
 
         if (lastReportedStatus === 'INITIALIZING') {
           lastReportedStatus = currentStatus;
           if (currentStatus === 'WIN' || currentStatus === 'FAIL') {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ ...payload, silent: true }));
+            // No delay needed for initial load, game is already finished
+            window.ReactNativeWebView.postMessage(JSON.stringify({ ...getPayload(), silent: true }));
           }
         } else if (currentStatus && currentStatus !== 'IN_PROGRESS' && currentStatus !== lastReportedStatus) {
           lastReportedStatus = currentStatus;
-          window.ReactNativeWebView.postMessage(JSON.stringify({ ...payload, silent: false }));
+          
+          // DELAY: Wait 3 seconds for the "Flip" animations to finish so the colors match!
+          setTimeout(() => {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ ...getPayload(), silent: false }));
+          }, 3000);
         }
       }
     } catch (e) {}
@@ -60,26 +67,27 @@ const injectWordleHeist = `
 `;
 
 export default function HomeScreen() {
-  const [username, setUsername] = useState('Player');
+  const [username, setUsername] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [gameStats, setGameStats] = useState<any>(null);
   const webviewRef = useRef<WebView>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('wordlers_name').then(name => {
-      if (name) setUsername(name);
-    });
+    const checkUser = async () => {
+      const name = await AsyncStorage.getItem('wordlers_name');
+      setUsername(name);
+    };
+    checkUser();
   }, []);
+
   const handleMessage = (event: any) => {
     try {
       const stats = JSON.parse(event.nativeEvent.data);
       console.log("Clean Wordlers Data:", stats);
 
-      // ONLY trigger the save and popup if it's an active gameplay transition
-      if ((stats.status === 'WIN' || stats.status === 'FAIL') && !stats.silent) {
-        setGameStats(stats);
-        setShowModal(true);
+      if (stats.status === 'WIN' || stats.status === 'FAIL') {
         
+        // 1. ALWAYS save to the database so your leaderboard is perfectly synced!
         fetch('/api/save-score', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -91,6 +99,12 @@ export default function HomeScreen() {
         .then(res => res.json())
         .then(data => console.log("DB Save Result:", data))
         .catch(err => console.error("DB Save Error:", err));
+
+        // 2. ONLY show the popup if they JUST won the game (not on a page refresh)
+        if (!stats.silent) {
+          setGameStats(stats);
+          setShowModal(true);
+        }
       }
         
     } catch (error) {
@@ -105,10 +119,10 @@ export default function HomeScreen() {
       {/* Escape Hatch Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerText}>Wordlers</Text>
+        
         <TouchableOpacity 
           style={styles.refreshButton}
           onPress={() => {
-            // Forcefully teleport the WebView back to the Wordle game board
             webviewRef.current?.injectJavaScript(`window.location.href = 'https://www.nytimes.com/games/wordle/index.html'; true;`);
           }}
         >
@@ -129,12 +143,10 @@ export default function HomeScreen() {
           thirdPartyCookiesEnabled={true}
           style={styles.webview}
           onShouldStartLoadWithRequest={(request) => {
-            // Only allow standard web URLs. This blocks custom app intents 
-            // like 'nytimes://' that kick you out to the official NYT app.
             if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
-              return true; // Keep it inside our WebView
+              return true; 
             }
-            return false; // Block the OS from opening external apps
+            return false; 
           }}
         />
       </View>
@@ -177,14 +189,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f4f4f5', 
-    padding: 16, // Restores the perfect even spacing on all sides (especially the bottom gap!)
+    padding: 16, 
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16, // Gives the Wordle box enough breathing room
-    paddingHorizontal: 4, // Keeps the text aligned perfectly with the curved card
+    marginBottom: 16, 
+    paddingHorizontal: 4, 
   },
   headerText: {
     fontSize: 22,
@@ -208,16 +220,15 @@ const styles = StyleSheet.create({
   },
   webviewWrapper: {
     flex: 1,
-    borderRadius: 24, // Cute curved edges
-    overflow: 'hidden', // Crucial: clips the square WebView corners
+    borderRadius: 24, 
+    overflow: 'hidden', 
     backgroundColor: '#ffffff',
-    // Adds a soft, modern shadow underneath the card
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 5, // Shadow for Android
-    marginBottom: 8, // Little extra space above the tab bar
+    elevation: 5, 
+    marginBottom: 8, 
   },
   webview: {
     flex: 1,

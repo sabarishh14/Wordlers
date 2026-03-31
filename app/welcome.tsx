@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator, Platform } from 'react-native';
-import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function WelcomeScreen() {
   const [name, setName] = useState('');
+  const [pin, setPin] = useState(''); // NEW: Tracks the PIN
   const [isChecking, setIsChecking] = useState(true);
+  const [loading, setLoading] = useState(false); // NEW: Tracks the button loading spinner
 
   useEffect(() => {
     checkExisting();
@@ -20,10 +22,35 @@ export default function WelcomeScreen() {
     }
   };
 
-  const saveName = async () => {
-    if (!name.trim()) return;
-    await AsyncStorage.setItem('wordlers_name', name.trim());
-    router.replace('/(tabs)' as any);
+  const handleLogin = async () => {
+    if (name.trim().length < 2 || pin.trim().length < 4) {
+      alert('Please enter a valid name and a 4-digit PIN!');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: name.trim(), pin: pin.trim() })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Only save to phone if the DB says the PIN is correct!
+        await AsyncStorage.setItem('wordlers_name', name.trim());
+        router.replace('/(tabs)' as any);
+      } else {
+        alert(data.error || 'Authentication failed');
+      }
+    } catch (error) {
+      console.log("REAL ERROR:", error); // Look at your terminal for this!
+      alert('Network error. Check terminal.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Prevent UI flash by showing a loader while checking storage
@@ -37,18 +64,41 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <Text style={styles.title}>Wordlers</Text>
-      <Text style={styles.subtitle}>Enter your name for the leaderboard</Text>
+      <Text style={styles.subtitle}>Enter your name and secret PIN</Text>
+      
       <TextInput 
         style={styles.input} 
         placeholder="Your Name" 
+        placeholderTextColor="#a1a1aa"
         value={name} 
         onChangeText={setName} 
-        autoFocus
+        autoCapitalize="words"
       />
-      <TouchableOpacity style={styles.button} onPress={saveName}>
-        <Text style={styles.buttonText}>Start Playing</Text>
+
+      {/* NEW: The PIN Input Field */}
+      <TextInput 
+        style={styles.input} 
+        placeholder="4-Digit PIN (e.g. 1234)" 
+        placeholderTextColor="#a1a1aa"
+        value={pin} 
+        onChangeText={setPin} 
+        keyboardType="number-pad"
+        maxLength={4}
+        secureTextEntry // Hides the numbers like a password
+      />
+
+      <TouchableOpacity 
+        style={[styles.button, loading && { opacity: 0.7 }]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#ffffff" />
+        ) : (
+          <Text style={styles.buttonText}>Start Playing</Text>
+        )}
       </TouchableOpacity>
     </View>
   );

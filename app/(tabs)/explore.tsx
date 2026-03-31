@@ -7,33 +7,93 @@ type Score = {
   status: string;
   guesses_taken: number;
   words_guessed?: string[];
-  evaluations?: string[][]; // Add this line
+  evaluations?: string[][];
+  time_taken?: number; // Add this!
 };
 
 export default function ExploreScreen() {
+  // Add this formatter right at the top of the component
+  const formatTime = (seconds?: number) => {
+    if (!seconds) return '';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+  const getLocalDateString = (d: Date) => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const todayStr = getLocalDateString(new Date());
+
   const [scores, setScores] = useState<Score[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedScore, setSelectedScore] = useState<Score | null>(null); // Tracks the modal
+  const [selectedScore, setSelectedScore] = useState<Score | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr); // Tracks the currently viewed date
+
+  // Re-fetch automatically whenever the date changes
+  useEffect(() => {
+    fetchScores();
+  }, [selectedDate]);
 
   const fetchScores = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch('/api/leaderboard');
+      // Pass the selected date to our upgraded API
+      const res = await fetch(`/api/leaderboard?date=${selectedDate}`);
       const data = await res.json();
-      if (data.success) setScores(data.scores);
-    } catch (e) {
-      console.error(e);
+      setScores(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchScores();
-  }, []);
+  // Date Navigation Logic
+  const shiftDate = (days: number) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(getLocalDateString(d));
+  };
+
+  // Formats the date to look nice in the UI (e.g., "Today", "Yesterday", "Oct 24")
+  const getDisplayDate = () => {
+    if (selectedDate === todayStr) return 'Today';
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (selectedDate === getLocalDateString(yesterday)) return 'Yesterday';
+    
+    return new Date(selectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Today's Ranks</Text>
+      
+      {/* Interactive Date Header */}
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>Leaderboard</Text>
+        
+        <View style={styles.dateSelector}>
+          <TouchableOpacity onPress={() => shiftDate(-1)} style={styles.dateArrow} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="chevron-back" size={16} color="#121212" />
+          </TouchableOpacity>
+          
+          <View style={styles.datePill}>
+            <Text style={styles.dateText}>{getDisplayDate()}</Text>
+          </View>
+          
+          <TouchableOpacity 
+            onPress={() => shiftDate(1)} 
+            style={[styles.dateArrow, selectedDate === todayStr && styles.dateArrowDisabled]} 
+            disabled={selectedDate === todayStr} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-forward" size={16} color={selectedDate === todayStr ? "#d3d6da" : "#121212"} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
       <FlatList
         data={scores}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchScores} tintColor="#000" />}
@@ -81,9 +141,16 @@ export default function ExploreScreen() {
                     {[...Array(5)].map((_, colIndex) => {
                       const letter = word[colIndex] || '';
                       const isFilled = letter !== '';
-                      const evaluation = selectedScore?.evaluations?.[rowIndex]?.[colIndex] || 'empty';
                       
-                      // We use 'any[]' here as a quick fix, or 'StyleProp<ViewStyle>[]' for strictness
+                      // SAFE PARSE: If Neon returns a string, turn it back into an array!
+                      let evalsArray = selectedScore?.evaluations || [];
+                      if (typeof evalsArray === 'string') {
+                        try { evalsArray = JSON.parse(evalsArray); } catch(e) {}
+                      }
+                      
+                      const evaluation = evalsArray?.[rowIndex]?.[colIndex] || 'empty';
+                      
+                      // Determine the colors based on NYT's state output
                       const boxStyles: any[] = [styles.gridBox];
                       const textStyles: any[] = [styles.gridLetter];
                       
@@ -123,7 +190,15 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 20 },
-  header: { fontSize: 36, fontWeight: '900', marginBottom: 24, marginTop: 40, letterSpacing: -1.5, color: '#121212' },
+  
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, marginTop: 40 },
+  headerTitle: { fontSize: 32, fontWeight: '900', letterSpacing: -1.5, color: '#121212' },
+  
+  dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4f4f5', borderRadius: 16, paddingHorizontal: 2, paddingVertical: 2 },
+  dateArrow: { padding: 6 },
+  dateArrowDisabled: { opacity: 0.5 },
+  datePill: { backgroundColor: '#ffffff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1, marginHorizontal: 2 },
+  dateText: { fontSize: 13, fontWeight: '700', color: '#121212', minWidth: 54, textAlign: 'center' },
   row: { flexDirection: 'row', paddingVertical: 16, borderBottomWidth: 1, borderColor: '#f0f2f5', alignItems: 'center' },
   
   rankBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f4f4f5', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
