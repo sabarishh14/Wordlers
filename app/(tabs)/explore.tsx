@@ -122,12 +122,23 @@ export default function ExploreScreen() {
             </View>
             <Text style={[styles.name, { color: textColor }]}>{item.username}</Text>
             
-            <View style={[styles.scorePill, item.status === 'WIN' ? [styles.scorePillWin, isDark && { backgroundColor: '#1b3320' }] : [styles.scorePillFail, isDark && { backgroundColor: '#3b1c1c' }]]}>
-              <Text style={[styles.scoreText, item.status !== 'WIN' && styles.scoreTextFail]}>
-                {item.status === 'WIN' ? `${item.guesses_taken}/6` : 'FAIL'}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* NEW: The Timer Pill */}
+              {item.time_taken ? (
+                <View style={[styles.timePill, { backgroundColor: cardBg }]}>
+                  <Ionicons name="time-outline" size={14} color="#888" />
+                  <Text style={styles.timeText}>{formatTime(item.time_taken)}</Text>
+                </View>
+              ) : null}
+
+              {/* EXISTING: The Score Pill */}
+              <View style={[styles.scorePill, item.status === 'WIN' ? [styles.scorePillWin, isDark && { backgroundColor: '#1b3320' }] : [styles.scorePillFail, isDark && { backgroundColor: '#3b1c1c' }]]}>
+                <Text style={[styles.scoreText, item.status !== 'WIN' && styles.scoreTextFail]}>
+                  {item.status === 'WIN' ? `${item.guesses_taken}/6` : 'FAIL'}
+                </Text>
+              </View>
             </View>
-            
+
             <Ionicons name="chevron-forward" size={20} color={isDark ? "#555" : "#c7c7cc"} style={{ marginLeft: 12 }} />
             
           </TouchableOpacity>
@@ -229,6 +240,20 @@ const styles = StyleSheet.create({
   scoreTextFail: { color: '#e57373' }, 
     
   empty: { textAlign: 'center', color: '#a1a1aa', marginTop: 40, fontSize: 16, fontWeight: '500' },
+  timePill: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 8, 
+    paddingVertical: 6, 
+    borderRadius: 12, 
+    marginRight: 8 
+  },
+  timeText: { 
+    fontSize: 14, 
+    fontWeight: 'bold', 
+    color: '#888', 
+    marginLeft: 4 
+  },
   // Modal & Grid Styles
   modalOverlay: {
     flex: 1,

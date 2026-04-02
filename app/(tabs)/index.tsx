@@ -21,6 +21,7 @@ const injectWordleHeist = `
   }, 500);
 
   let lastReportedStatus = 'INITIALIZING';
+  let sessionStartTime = null; // <-- ADD THIS
 
   setInterval(() => {
     try {
@@ -31,6 +32,11 @@ const injectWordleHeist = `
         const parsed = JSON.parse(stateStr);
         const state = parsed.states[0].data;
         const currentStatus = state.status;
+        
+        // START TIMER: If they made at least 1 guess and we haven't started the clock yet
+        if (state.currentRowIndex > 0 && !sessionStartTime && currentStatus === 'IN_PROGRESS') {
+          sessionStartTime = Date.now();
+        }
         
         // FUNCTION TO EXTRACT DATA
         const getPayload = () => {
@@ -47,11 +53,15 @@ const injectWordleHeist = `
             }
           }
 
+          // Calculate seconds passed (default to 0 if they somehow won instantly)
+          const timeTakenSeconds = sessionStartTime ? Math.floor((Date.now() - sessionStartTime) / 1000) : 0;
+
           return {
             status: currentStatus,
             guessesTaken: state.currentRowIndex,
             wordsGuessed: state.boardState.filter(word => word !== ''),
-            evaluations: extractedEvals 
+            evaluations: extractedEvals,
+            time_taken: timeTakenSeconds // <-- ADD THIS TO YOUR DB PAYLOAD
           };
         };
 

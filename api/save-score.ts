@@ -5,33 +5,29 @@ export const config = { runtime: 'edge' };
 export default async function handler(request: Request) {
   try {
     const body = await request.json();
-    const { username, status, guessesTaken, wordsGuessed, evaluations, timeTaken } = body;
+    
+    // 1. Extract the new time_taken field from the frontend payload
+    const { username, status, guessesTaken, wordsGuessed, evaluations, time_taken } = body;
 
+    // Connect to Neon Database (Make sure your neon import is correct)
+    const { neon } = require('@neondatabase/serverless');
     const sql = neon(process.env.EXPO_PUBLIC_DATABASE_URL!);
 
-    // Let Neon handle the arrays, cast JSONB, and save the time!
+    // 2. Update the SQL query to insert time_taken (as the 6th parameter)
     await sql`
-      INSERT INTO daily_scores (username, status, guesses_taken, words_guessed, evaluations, time_taken)
-      VALUES (
-        ${username}, 
-        ${status}, 
-        ${guessesTaken}, 
-        ${wordsGuessed || null}, 
-        ${evaluations ? JSON.stringify(evaluations) : null}::jsonb,
-        ${timeTaken || 0}
-      )
-      ON CONFLICT (username, played_date) 
-      DO UPDATE SET 
-        status = EXCLUDED.status,
-        guesses_taken = EXCLUDED.guesses_taken,
-        words_guessed = EXCLUDED.words_guessed,
-        evaluations = EXCLUDED.evaluations,
-        time_taken = EXCLUDED.time_taken;
+      INSERT INTO wordle_scores (username, status, guesses_taken, words_guessed, evaluations, time_taken)
+      VALUES (${username}, ${status}, ${guessesTaken}, ${JSON.stringify(wordsGuessed)}, ${JSON.stringify(evaluations)}, ${time_taken || null})
     `;
 
-    return Response.json({ success: true, message: "Score saved!" });
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    console.error("Database Error:", error);
-    return Response.json({ success: false, error: "Failed to save score" }, { status: 500 });
+    console.error('Save Score Error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to save score' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
