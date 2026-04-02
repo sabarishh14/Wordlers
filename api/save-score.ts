@@ -4,7 +4,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // FIX 1: Extracted 'time_taken' to match the frontend perfectly
     const { username, status, guessesTaken, wordsGuessed, evaluations, time_taken } = body;
 
     const sql = neon(process.env.EXPO_PUBLIC_DATABASE_URL!);
@@ -15,7 +14,7 @@ export async function POST(request: Request) {
         ${username}, 
         ${status}, 
         ${guessesTaken}, 
-        ${wordsGuessed ? JSON.stringify(wordsGuessed) : null}::jsonb, -- FIX 2: Stringified the array for Neon!
+        ${wordsGuessed || null}, /* THE FIX: Pass the array directly, no JSON stringify! */
         ${evaluations ? JSON.stringify(evaluations) : null}::jsonb,
         ${time_taken || 0}
       )
@@ -28,9 +27,16 @@ export async function POST(request: Request) {
         time_taken = EXCLUDED.time_taken;
     `;
 
-    return Response.json({ success: true, message: "Score saved!" });
-  } catch (error) {
+    // Modern edge-friendly response
+    return new Response(JSON.stringify({ success: true, message: "Score saved!" }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error: any) {
     console.error("Database Error:", error);
-    return Response.json({ success: false, error: "Failed to save score" }, { status: 500 });
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
