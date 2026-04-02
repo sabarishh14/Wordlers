@@ -2,6 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { FlatList, Modal, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../_ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
+// (Keep your existing imports)
 
 type Score = {
   username: string;
@@ -40,7 +43,19 @@ export default function ExploreScreen() {
   const [scores, setScores] = useState<Score[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedScore, setSelectedScore] = useState<Score | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr); // Tracks the currently viewed date
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr); 
+
+  // --- ADD THESE LINES ---
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const name = await AsyncStorage.getItem('wordlers_name');
+      setCurrentUsername(name);
+    };
+    fetchUser();
+  }, []);
+  // -----------------------
 
   // Re-fetch automatically whenever the date changes
   useEffect(() => {
@@ -113,7 +128,27 @@ export default function ExploreScreen() {
           <TouchableOpacity 
             style={[styles.row, { borderColor: borderColor }]}
             activeOpacity={0.7}
-            onPress={() => setSelectedScore(item)}
+            onPress={() => {
+              // Always let them view their own board
+              if (item.username === currentUsername) {
+                setSelectedScore(item);
+                return;
+              }
+              
+              // Check if current user has a completed score for this date
+              const hasPlayed = scores.some(
+                s => s.username === currentUsername && (s.status === 'WIN' || s.status === 'FAIL')
+              );
+              
+              if (hasPlayed) {
+                setSelectedScore(item);
+              } else {
+                Alert.alert(
+                  "No Spoilers!", 
+                  "You need to finish your Wordle for this date before peeking at other boards."
+                );
+              }
+            }}
           >
             <View style={[styles.rankBadge, index === 0 ? styles.rankBadgeGold : { backgroundColor: cardBg }]}>
               <Text style={[styles.rankText, index === 0 ? styles.rankTextGold : { color: isDark ? '#888' : '#888' }]}>
