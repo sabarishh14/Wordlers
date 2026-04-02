@@ -56,12 +56,17 @@ const injectWordleHeist = `
           // Calculate seconds passed (default to 0 if they somehow won instantly)
           const timeTakenSeconds = sessionStartTime ? Math.floor((Date.now() - sessionStartTime) / 1000) : 0;
 
+          // Generate YYYY-MM-DD strictly in the user's local timezone
+          const today = new Date();
+          const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
           return {
             status: currentStatus,
             guessesTaken: state.currentRowIndex,
             wordsGuessed: state.boardState.filter(word => word !== ''),
             evaluations: extractedEvals,
-            time_taken: timeTakenSeconds // <-- ADD THIS TO YOUR DB PAYLOAD
+            time_taken: timeTakenSeconds,
+            played_date: localDate
           };
         };
 
