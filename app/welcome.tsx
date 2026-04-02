@@ -33,7 +33,7 @@ export default function WelcomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
     try {
-      const res = await fetch('/api/auth', {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: name.trim(), pin: pin.trim() })

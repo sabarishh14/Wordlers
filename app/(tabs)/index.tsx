@@ -51,15 +51,7 @@ const injectWordleHeist = `
             status: currentStatus,
             guessesTaken: state.currentRowIndex,
             wordsGuessed: state.boardState.filter(word => word !== ''),
-            evaluations: extractedEvals
-          };
-        };
-
-          return {
-            status: currentStatus,
-            guessesTaken: state.currentRowIndex,
-            wordsGuessed: state.boardState.filter(word => word !== ''),
-            evaluations: extractedEvals // Exclusively rely on our scraped DOM data!
+            evaluations: extractedEvals 
           };
         };
 
@@ -117,7 +109,7 @@ export default function HomeScreen() {
         if (!stats.silent) {
           
           // 1. Save to database
-          fetch('/api/save-score', {
+          fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/save-score`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

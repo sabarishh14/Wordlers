@@ -47,11 +47,10 @@ export default function ExploreScreen() {
     fetchScores();
   }, [selectedDate]);
 
-  const fetchScores = async () => {
+ const fetchScores = async () => {
     setRefreshing(true);
     try {
-      // Pass the selected date to our upgraded API
-      const res = await fetch(`/api/leaderboard?date=${selectedDate}`);
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/leaderboard?date=${selectedDate}`);
       const data = await res.json();
       setScores(data);
     } catch (error) {

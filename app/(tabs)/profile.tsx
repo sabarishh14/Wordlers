@@ -53,7 +53,7 @@ export default function ProfileScreen() {
           setAvatarUri(null); // Clear it if this specific user doesn't have one
         }
 
-        const res = await fetch(`/api/profile?username=${encodeURIComponent(storedName)}`);
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/profile?username=${encodeURIComponent(storedName)}`);
         const data = await res.json();
         setStats(data);
       }
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
     }
 
     try {
-      const res = await fetch('/api/update-username', {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/update-username`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldName: username, newName })
