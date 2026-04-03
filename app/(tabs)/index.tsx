@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { useTheme } from '../_ThemeContext';
+import { useTheme } from '../../contexts/_ThemeContext';
 
 // The rock-solid, crash-free Heist Script
 const injectWordleHeist = `

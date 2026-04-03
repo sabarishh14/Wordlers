@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { useTheme } from '../_ThemeContext';
+import { useTheme } from '../../contexts/_ThemeContext';
 
 type Stats = {
   totalPlayed: number;
@@ -28,14 +28,60 @@ export default function ProfileScreen() {
   const [showTimeInfo, setShowTimeInfo] = useState(false); // <-- ADD THIS
 
   const facts = [
-    "Wordle was created by software engineer Josh Wardle for his partner.",
-    "The New York Times bought Wordle in early 2022.",
-    "There are 2,309 possible winning words in the original game.",
-    "The most common first guess is 'ADIEU'.",
-    "CRANE is considered one of the mathematically best starting words.",
-    "Cracking the NYT vault...",
-    "Extracting your shiny badges..."
-  ];
+  "Wordle was created by software engineer Josh Wardle for his partner.",
+  "The New York Times bought Wordle in early 2022.",
+  "There are 2,309 possible winning words in the original game.",
+  "The most common first guess is 'ADIEU'.",
+  "CRANE is considered one of the mathematically best starting words.",
+  "Cracking the NYT vault...",
+  "Extracting your shiny badges...",
+  "Wordle was originally released to the public in October 2021.",
+  "Josh Wardle stopped playing Wordle the same day he sold it to The New York Times.",
+  "The game’s name is a playful pun on creator Josh Wardle’s last name.",
+  "Over 12,000 five-letter words are allowed as guesses in Wordle.",
+  "E is the most frequently used letter in official Wordle answers.",
+  "More than 15% of Wordle answers begin with the letter S.",
+  "About 33% of all Wordle solutions contain the letter E.",
+  "The average number of guesses needed to solve Wordle is around 3.8.",
+  "Only about 0.2% to 0.5% of players solve Wordle in one guess.",
+  "SALET is often ranked as the single best starting word by math.",
+  "ADIEU is popular but one of the least efficient starting words.",
+  "ROATE and TRACE are strong alternatives to CRANE.",
+  "Wordle answers are chosen from a pre-selected list of 2,309 words.",
+  "The full list of acceptable guesses is much larger than the answer list.",
+  "Wordle exploded in popularity during the COVID-19 pandemic.",
+  "By January 2022, millions of people were playing Wordle daily.",
+  "Sharing Wordle scores on Twitter became a massive viral trend.",
+  "Wordle has no advertisements and remains completely free.",
+  "The New York Times slightly edited the word list after buying the game.",
+  "STARE, SLATE, and CRANE frequently appear in top starter recommendations.",
+  "WordleBot analyzes your guesses and rates your skill.",
+  "The hardest Wordle words often require 5 or 6 guesses on average.",
+  "Over 5 billion Wordle puzzles were solved in 2023.",
+  "The 1,000th official Wordle puzzle was celebrated in March 2024.",
+  "Nearly 40% of players solve Wordle first thing in the morning.",
+  "Some players have maintained streaks longer than 500 days.",
+  "Y is one of the most common letters in the fifth position.",
+  "Wordle uses American English spellings only.",
+  "The original prototype of Wordle was created as early as 2013.",
+  "RAISE is a popular starting word that balances vowels and common letters.",
+  "Computers using optimal strategy solve Wordle in about 3.5 guesses on average.",
+  "Around 3% of Wordle games end unsolved within the six-guess limit.",
+  "Wordle helped bring tens of millions of new users to NYT Games.",
+  "The letter E appears in the fifth position more often than any other letter.",
+  "SLICE and TRIED are solid starting words for many players.",
+  "Wordle answers are scheduled in advance rather than picked randomly each day.",
+  "Optimal two-word starter combinations can eliminate most possibilities quickly.",
+  "MUMMY, JAZZY, and PARER are among the statistically hardest answers.",
+  "Wordle inspired dozens of variants including Quordle, Octordle, and Dordle.",
+  "The median number of guesses to solve a puzzle is approximately 3.8.",
+  "Over 70% of Wordle solutions contain at least two different vowels.",
+  "AUDIO is a common first guess favored for its four vowels.",
+  "SOARE was once considered one of the strongest mathematical openers.",
+  "Players tend to improve slightly with practice over time.",
+  "The game’s simple black, yellow, and green color scheme became iconic.",
+  "Wordle’s success turned a personal gift into a global daily habit."
+];
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;

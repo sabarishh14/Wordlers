@@ -12,13 +12,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.sabs.wordlers",
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
+      "package": "com.sabs.wordlers",  
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
