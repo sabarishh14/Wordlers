@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   const [isImporting, setIsImporting] = useState(false);
   const [funFact, setFunFact] = useState("Initializing NYT Heist...");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showTimeInfo, setShowTimeInfo] = useState(false); // <-- ADD THIS
 
   const facts = [
     "Wordle was created by software engineer Josh Wardle for his partner.",
@@ -213,10 +214,7 @@ export default function ProfileScreen() {
     );
   }
 
-  // Find the highest number in the distribution to scale the bar chart properly
-  const maxDistribution = stats ? Math.max(...Object.values(stats.distribution)) : 1;
-
-  // Calculate Average Guesses
+  // Calculate Wins, Fails, and Averages
   let totalGuesses = 0;
   let totalWins = 0;
   if (stats) {
@@ -225,9 +223,16 @@ export default function ProfileScreen() {
       totalWins += count;
     });
   }
+  
+  // Fails = Total Played minus all the wins
+  const fails = stats ? stats.totalPlayed - totalWins : 0;
+  
   const averageGuesses = totalWins > 0 ? (totalGuesses / totalWins).toFixed(2) : '0.00';
 
-  // Format Average Time for Display
+  // Find highest number to scale the bar chart (now including fails!)
+  const maxDistribution = stats ? Math.max(...Object.values(stats.distribution), fails) : 1;
+
+  // Format Average Time
   const formatTime = (seconds?: number) => {
     if (!seconds || seconds === 0) return '--';
     const m = Math.floor(seconds / 60);
@@ -335,10 +340,19 @@ export default function ProfileScreen() {
             <Text style={[styles.statNumber, { color: textColor }]}>{averageGuesses}</Text>
             <Text style={styles.statLabel}>Avg Guesses</Text>
           </View>
-          <View style={[styles.statBox, { backgroundColor: cardBg }]}>
-            <Text style={[styles.statNumber, { color: textColor }]}>{formatTime(stats?.averageTime)}</Text>
-            <Text style={styles.statLabel}>Avg Time</Text>
-          </View>
+          <TouchableOpacity 
+            style={[styles.statBox, { backgroundColor: cardBg }]}
+            activeOpacity={0.7}
+            onPress={() => setShowTimeInfo(true)}
+          >
+            <Text style={[styles.statNumber, { color: textColor }]}>
+              {formatTime(stats?.averageTime)}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.statLabel}>Avg Time </Text>
+              <Ionicons name="information-circle-outline" size={16} color="#a1a1aa" style={{ marginLeft: 4 }} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Guess Distribution Chart */}
@@ -365,6 +379,20 @@ export default function ProfileScreen() {
               </View>
             );
           })}
+
+          {/* NEW: The Fails / Missed Row */}
+          <View style={styles.graphRow}>
+            <Text style={[styles.graphNumber, { color: textColor }]}>X</Text>
+            <View style={styles.graphBarWrapper}>
+              <View style={[
+                styles.graphBar, 
+                { width: (maxDistribution > 0 ? (fails / maxDistribution) * 100 : 0) > 7 ? `${(fails / maxDistribution) * 100}%` : '7%', backgroundColor: graphBg },
+                fails > 0 && { backgroundColor: '#e57373' } // Red bar for fails!
+              ]}>
+                <Text style={[styles.graphBarText, { color: fails > 0 ? '#ffffff' : textColor }]}>{String(fails)}</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* Solid Red Logout Button */}
@@ -418,6 +446,30 @@ export default function ProfileScreen() {
               onPress={() => setShowSuccessModal(false)}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Awesome</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Average Time Info Modal */}
+      <Modal visible={showTimeInfo} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: cardBg, padding: 32 }]}>
+            <Ionicons name="time-outline" size={48} color="#6aaa64" style={{ marginBottom: 16 }} />
+            <Text style={[styles.modalTitle, { color: textColor, marginBottom: 12, textAlign: 'center' }]}>
+              About Average Time
+            </Text>
+            <Text style={{ fontSize: 16, color: isDark ? '#aaa' : '#555', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+              The New York Times doesn't track how long it takes you to solve a puzzle. 
+              {'\n\n'}
+              Because of this, your average time is calculated <Text style={{ fontWeight: 'bold', color: textColor }}>only</Text> from the games you play directly within the Wordlers app!
+            </Text>
+            
+            <TouchableOpacity 
+              style={{ backgroundColor: '#121212', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 16, width: '100%', alignItems: 'center' }} 
+              onPress={() => setShowTimeInfo(false)}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Got it</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -504,5 +556,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
 });
