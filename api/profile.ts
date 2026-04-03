@@ -22,9 +22,9 @@ export default async function handler(request: Request) {
     `;
 
     // 1. Calculate Base Stats
-    const totalPlayed = scores.length;
+    let totalPlayed = scores.length;
     const wins = scores.filter(s => s.status === 'WIN');
-    const winPercentage = totalPlayed === 0 ? 0 : Math.round((wins.length / totalPlayed) * 100);
+    let winPercentage = totalPlayed === 0 ? 0 : Math.round((wins.length / totalPlayed) * 100);
 
     // 2. Calculate Guess Distribution (How many 1s, 2s, 3s, etc.)
     const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
