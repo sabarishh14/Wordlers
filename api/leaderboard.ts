@@ -78,7 +78,9 @@ export default async function handler(request: Request) {
         return a.avg_time - b.avg_time;
       });
 
-      return Response.json(overallLeaderboard);
+      return Response.json(overallLeaderboard, {
+        headers: { 'Cache-Control': 'max-age=0, s-maxage=60, stale-while-revalidate=300' }
+      });
     }
 
     // --- DAILY LEADERBOARD (ORIGINAL LOGIC) ---
@@ -98,7 +100,9 @@ export default async function handler(request: Request) {
         time_taken ASC;
     `;
 
-    return Response.json(scores);
+    return Response.json(scores, {
+      headers: { 'Cache-Control': 'max-age=0, s-maxage=60, stale-while-revalidate=300' }
+    });
   } catch (error) {
     console.error("Leaderboard API Error:", error);
     return Response.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });

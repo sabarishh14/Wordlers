@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { FlatList, Modal, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useTheme } from '../_ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../_ThemeContext';
 // (Keep your existing imports)
 
 type Score = {
@@ -65,8 +65,9 @@ export default function ExploreScreen() {
 
   // Re-fetch automatically whenever the date OR mode changes
   useEffect(() => {
+    setScores([]); // <-- THE UX FIX: Instantly clear stale data so it doesn't flash!
     fetchScores();
-  }, [selectedDate, mode]); // <-- Added mode here
+  }, [selectedDate, mode]);
 
  const fetchScores = async () => {
     setRefreshing(true);
@@ -213,7 +214,15 @@ return (
             
           </TouchableOpacity>
         )}
-        ListEmptyComponent={<Text style={[styles.empty, { color: isDark ? '#666' : '#a1a1aa' }]}>No scores here yet.</Text>}
+        ListEmptyComponent={
+          refreshing ? (
+            <View style={{ marginTop: 60, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#6aaa64" />
+            </View>
+          ) : (
+            <Text style={[styles.empty, { color: isDark ? '#666' : '#a1a1aa' }]}>No scores here yet.</Text>
+          )
+        }
       />
       
       {/* The Wordle Board Modal */}
