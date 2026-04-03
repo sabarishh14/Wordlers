@@ -16,6 +16,7 @@ type Stats = {
   maxStreak: number;
   distribution: Record<string, number>;
   averageTime: number;
+  favoriteWord?: string; // <-- Make sure this line is here!
 };
 
 export default function ProfileScreen() {
@@ -401,6 +402,21 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* NEW: Favorite Starter Word Badge */}
+        {stats?.favoriteWord && (
+          <View style={[styles.favWordContainer, { backgroundColor: cardBg }]}>
+            <View style={[styles.favWordIconBox, { backgroundColor: isDark ? '#333' : '#f4f4f5' }]}>
+              <Ionicons name="star" size={24} color="#c9b458" />
+            </View>
+            <View style={{ marginLeft: 16 }}>
+              <Text style={styles.favWordLabel}>Most Used Word</Text>
+              <Text style={[styles.favWordValue, { color: textColor }]}>
+                {stats.favoriteWord.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Guess Distribution Chart */}
         <View style={[styles.chartContainer, { backgroundColor: cardBg }]}>
           <Text style={[styles.chartTitle, { color: textColor }]}>Guess Distribution</Text>
@@ -543,6 +559,10 @@ const styles = StyleSheet.create({
   statBox: { width: '47%', backgroundColor: '#ffffff', padding: 16, borderRadius: 20, alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
   statNumber: { fontSize: 32, fontWeight: '800', color: '#121212', marginBottom: 4 },
   statLabel: { fontSize: 13, fontWeight: '600', color: '#a1a1aa', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 },
+  favWordContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, padding: 16, borderRadius: 20, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
+  favWordIconBox: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  favWordLabel: { fontSize: 13, fontWeight: '700', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  favWordValue: { fontSize: 24, fontWeight: '900', letterSpacing: 2 },
   
   chartContainer: { backgroundColor: '#ffffff', marginHorizontal: 20, padding: 24, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
   chartTitle: { fontSize: 18, fontWeight: '800', color: '#121212', marginBottom: 20 },

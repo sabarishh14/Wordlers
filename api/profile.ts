@@ -16,7 +16,7 @@ export default async function handler(request: Request) {
 
     // 2. Fetch Native Scores
     const scores = await sql`
-      SELECT played_date, status, guesses_taken, time_taken 
+      SELECT played_date, status, guesses_taken, time_taken, words_guessed 
       FROM daily_scores 
       WHERE username = ${username}
       ORDER BY played_date ASC;
@@ -46,9 +46,27 @@ export default async function handler(request: Request) {
 
     let totalTime = 0; 
     let gamesWithTime = 0;
+    const wordFrequencies: Record<string, number> = {}; // <-- NEW: Dictionary to count words
 
     // 4. Layer the native scores exactly on top
     for (const score of scores) {
+      // --- NEW: Count EVERY word they guessed in this game ---
+      if (score.words_guessed) {
+        let words = score.words_guessed;
+        // Handle Postgres returning either a JSON string or an array
+        if (typeof words === 'string') {
+          try { words = JSON.parse(words); } catch(e) { words = []; }
+        }
+        if (Array.isArray(words)) {
+          for (const word of words) {
+            if (word) {
+              const cleanWord = word.toUpperCase();
+              wordFrequencies[cleanWord] = (wordFrequencies[cleanWord] || 0) + 1;
+            }
+          }
+        }
+      }
+      // --------------------------------------------------------
       const scoreDate = new Date(score.played_date).setHours(0, 0, 0, 0);
       const isOverlap = legacy && scoreDate <= legacyAnchorDate;
 
@@ -98,7 +116,19 @@ export default async function handler(request: Request) {
     const winPercentage = totalPlayed === 0 ? 0 : Math.round((totalWins / totalPlayed) * 100);
     const averageTime = gamesWithTime > 0 ? Math.round(totalTime / gamesWithTime) : 0;
 
-    return Response.json({ totalPlayed, winPercentage, currentStreak, maxStreak, distribution, averageTime });
+    // --- NEW: Calculate the most used word ---
+    let favoriteWord: string | null = null;
+    let maxCount = 0;
+    for (const [word, count] of Object.entries(wordFrequencies)) {
+      if (count > maxCount) {
+        maxCount = count;
+        favoriteWord = word;
+      }
+    }
+
+    return Response.json({ 
+      totalPlayed, winPercentage, currentStreak, maxStreak, distribution, averageTime, favoriteWord 
+    });
 
   } catch (error) {
     console.error("Profile API Error:", error);

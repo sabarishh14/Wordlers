@@ -54,6 +54,45 @@ export default function ExploreScreen() {
   // NEW: Add the mode state
   const [mode, setMode] = useState<'daily' | 'overall'>('daily');
 
+  // NEW: Dictionary States
+  const [wordMeaning, setWordMeaning] = useState<string | null>(null);
+  const [isFetchingMeaning, setIsFetchingMeaning] = useState(false);
+
+  // NEW: Fetch definition when a board is opened
+  useEffect(() => {
+    const fetchMeaning = async () => {
+      if (!selectedScore || selectedScore.status !== 'WIN') {
+        setWordMeaning(null);
+        return;
+      }
+
+      let wordsArray = selectedScore.words_guessed || [];
+      if (typeof wordsArray === 'string') {
+        try { wordsArray = JSON.parse(wordsArray); } catch(e) {}
+      }
+
+      if (wordsArray.length > 0) {
+        const winningWord = wordsArray[wordsArray.length - 1];
+        setIsFetchingMeaning(true);
+        try {
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${winningWord}`);
+          const data = await res.json();
+          if (data && data[0] && data[0].meanings[0].definitions[0].definition) {
+            setWordMeaning(data[0].meanings[0].definitions[0].definition);
+          } else {
+            setWordMeaning("Definition not found in our current dictionary.");
+          }
+        } catch (err) {
+          setWordMeaning("Could not load definition right now.");
+        } finally {
+          setIsFetchingMeaning(false);
+        }
+      }
+    };
+
+    fetchMeaning();
+  }, [selectedScore]);
+
   useEffect(() => {
     const fetchUser = async () => {
       const name = await AsyncStorage.getItem('wordlers_name');
@@ -282,6 +321,33 @@ return (
               })}
             </View>
 
+            {/* NEW: Dictionary Card */}
+            {selectedScore?.status === 'WIN' && (
+              <View style={[styles.definitionContainer, { backgroundColor: isDark ? '#2c2c2e' : '#f4f4f5' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                  <Ionicons name="book" size={14} color="#888" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Word of the Day</Text>
+                </View>
+                
+                {isFetchingMeaning ? (
+                  <ActivityIndicator size="small" color="#888" style={{ marginVertical: 8, alignSelf: 'flex-start' }} />
+                ) : (
+                  <>
+                    <Text style={[styles.definitionWord, { color: textColor }]}>
+                      {(() => {
+                        let w = selectedScore.words_guessed || [];
+                        if (typeof w === 'string') try { w = JSON.parse(w); } catch(e){}
+                        return w[w.length - 1]?.toUpperCase();
+                      })()}
+                    </Text>
+                    <Text style={[styles.definitionText, { color: isDark ? '#bbb' : '#555' }]}>
+                      {wordMeaning}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+
             <TouchableOpacity style={[styles.closeButton, { backgroundColor: isDark ? '#333' : '#121212' }]} onPress={() => setSelectedScore(null)}>
               <Text style={styles.closeButtonText}>Close Board</Text>
             </TouchableOpacity>
@@ -419,5 +485,23 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  definitionContainer: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    alignItems: 'flex-start',
+  },
+  definitionWord: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  definitionText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    lineHeight: 20,
   },
 });
