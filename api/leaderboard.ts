@@ -44,17 +44,20 @@ export default async function handler(request: Request) {
         }
 
         const scoreDate = new Date(score.played_date).setHours(0,0,0,0);
+        const isOverlap = user.anchorDate && scoreDate <= user.anchorDate;
         
-        // Skip native scores that overlap with the legacy anchor date
-        if (user.anchorDate && scoreDate <= user.anchorDate) return;
+        // 1. Rescue the time data unconditionally
+        if (score.status === 'WIN' && score.time_taken && score.time_taken > 0) {
+            user.total_time += score.time_taken;
+            user.games_with_time++;
+        }
+
+        // 2. Skip adding to total wins and guesses if it overlaps with legacy
+        if (isOverlap) return;
 
         if (score.status === 'WIN') {
           user.total_wins++;
           user.total_guesses += score.guesses_taken;
-          if (score.time_taken > 0) {
-            user.total_time += score.time_taken;
-            user.games_with_time++;
-          }
         }
       });
 

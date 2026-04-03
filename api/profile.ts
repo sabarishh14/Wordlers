@@ -50,10 +50,16 @@ export default async function handler(request: Request) {
     // 4. Layer the native scores exactly on top
     for (const score of scores) {
       const scoreDate = new Date(score.played_date).setHours(0, 0, 0, 0);
+      const isOverlap = legacy && scoreDate <= legacyAnchorDate;
 
-      // CRITICAL: Prevent double counting! 
-      // If the native score happened ON or BEFORE the day we synced NYT, skip it entirely.
-      if (legacy && scoreDate <= legacyAnchorDate) {
+      // 1. ALWAYS rescue the time data, even if it's an overlapping game!
+      if (score.status === 'WIN' && score.time_taken && score.time_taken > 0) {
+        totalTime += score.time_taken;
+        gamesWithTime++;
+      }
+
+      // 2. NOW skip the rest if it overlaps, so we don't double count NYT wins/streaks
+      if (isOverlap) {
         continue;
       }
 
@@ -61,7 +67,6 @@ export default async function handler(request: Request) {
 
       if (score.status === 'WIN') {
         if (score.guesses_taken) distribution[String(score.guesses_taken)]++;
-        if (score.time_taken) { totalTime += score.time_taken; gamesWithTime++; }
 
         if (lastWinDate === null) {
           currentStreak = 1;
